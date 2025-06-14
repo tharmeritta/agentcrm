@@ -206,6 +206,7 @@ async def initialize_super_admin():
 # Routes
 @api_router.post("/auth/login")
 async def login(login_data: UserLogin):
+    db = await get_database()
     user = await db.users.find_one({"username": login_data.username})
     if not user or not verify_password(login_data.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
