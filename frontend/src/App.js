@@ -1704,7 +1704,8 @@ const AgentDashboard = () => {
               {/* Sale Request Form */}
               <div className="bg-white shadow rounded-lg">
                 <div className="px-6 py-4 border-b border-gray-200">
-                  <h2 className="text-lg font-medium text-gray-900">Submit Sale Request</h2>
+                  <h2 className="text-lg font-medium text-gray-900">Submit Coin Request</h2>
+                  <p className="text-sm text-gray-500">Submit your sales to request coins and deposits</p>
                 </div>
                 <div className="p-6">
                   <div className="space-y-4">
@@ -1724,11 +1725,11 @@ const AgentDashboard = () => {
                       </select>
                     </div>
                     <button
-                      onClick={submitSaleRequest}
+                      onClick={submitCoinRequest}
                       disabled={loading || !selectedSale}
                       className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-6 py-2 rounded-lg font-medium"
                     >
-                      {loading ? 'Submitting...' : 'Submit Sale Request'}
+                      {loading ? 'Submitting...' : 'Submit Coin Request'}
                     </button>
                   </div>
                 </div>
