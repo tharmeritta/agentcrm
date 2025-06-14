@@ -589,6 +589,7 @@ async def get_pending_coin_requests(current_user: dict = Depends(require_role([U
     if database is None:
         raise HTTPException(status_code=500, detail="Database connection failed")
     
+    # Admin and Super Admin can see ALL coin requests (not just from their created agents)
     requests = await database.sale_requests.find({"status": "pending"}).to_list(1000)
     
     # Add agent information to each request
@@ -631,6 +632,74 @@ async def approve_coin_request(request_id: str, current_user: dict = Depends(req
     )
     
     return {"message": "Coin request approved successfully"}
+
+@api_router.put("/admin/coin-requests/{request_id}/reject")
+async def reject_coin_request(request_id: str, rejection_data: dict, current_user: dict = Depends(require_role([UserRole.ADMIN, UserRole.SUPER_ADMIN]))):
+    database = await get_database()
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+        
+    sale_request = await database.sale_requests.find_one({"id": request_id})
+    if not sale_request:
+        raise HTTPException(status_code=404, detail="Coin request not found")
+    
+    rejection_reason = rejection_data.get("reason", "No reason provided")
+    
+    # Update sale request
+    await database.sale_requests.update_one(
+        {"id": request_id},
+        {"$set": {
+            "status": "rejected",
+            "rejected_by": current_user["id"],
+            "rejected_at": datetime.utcnow(),
+            "rejection_reason": rejection_reason
+        }}
+    )
+    
+    return {"message": "Coin request rejected successfully"}
+
+# Admin Shop View (Read-only)
+@api_router.get("/admin/shop/prizes")
+async def get_shop_prizes_admin_view(current_user: dict = Depends(require_role([UserRole.ADMIN, UserRole.SUPER_ADMIN]))):
+    database = await get_database()
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    
+    prizes = await database.prizes.find({}).to_list(1000)
+    return convert_objectid_to_string(prizes)
+
+# Admin can see all agents (not just ones they created)
+@api_router.get("/admin/all-agents")
+async def get_all_agents_for_admin(current_user: dict = Depends(require_role([UserRole.ADMIN, UserRole.SUPER_ADMIN]))):
+    database = await get_database()
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    
+    # Return all agents for admin visibility
+    agents = await database.users.find({"role": "agent"}).to_list(1000)
+    
+    # Remove password_hash from response
+    for agent in agents:
+        agent.pop("password_hash", None)
+    
+    return convert_objectid_to_string(agents)
+
+# Admin can see all reward requests (not just from their agents)
+@api_router.get("/admin/all-reward-requests")
+async def get_all_reward_requests(current_user: dict = Depends(require_role([UserRole.ADMIN, UserRole.SUPER_ADMIN]))):
+    database = await get_database()
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+        
+    rewards = await database.reward_bag.find({"status": "pending_use"}).to_list(1000)
+    
+    # Add agent information
+    for reward in rewards:
+        agent = await database.users.find_one({"id": reward["agent_id"]})
+        if agent:
+            reward["agent_name"] = agent.get("name", agent.get("username"))
+    
+    return convert_objectid_to_string(rewards)
 
 # Agent Routes
 @api_router.post("/agent/coin-request")
