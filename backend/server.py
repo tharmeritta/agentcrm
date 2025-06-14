@@ -372,7 +372,11 @@ async def delete_prize(prize_id: str, current_user: dict = Depends(require_role(
 
 @api_router.post("/super-admin/admins")
 async def create_admin(user_data: UserCreate, current_user: dict = Depends(require_role([UserRole.SUPER_ADMIN]))):
-    existing_user = await db.users.find_one({"username": user_data.username})
+    database = await get_database()
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+        
+    existing_user = await database.users.find_one({"username": user_data.username})
     if existing_user:
         raise HTTPException(status_code=400, detail="Username already exists")
     
@@ -385,7 +389,7 @@ async def create_admin(user_data: UserCreate, current_user: dict = Depends(requi
     admin_dict = new_admin.dict()
     admin_dict["password_hash"] = hash_password(user_data.password)
     
-    await db.users.insert_one(admin_dict)
+    await database.users.insert_one(admin_dict)
     return {"message": "Admin created successfully", "admin_id": admin_dict["id"]}
 
 @api_router.put("/super-admin/admins/{admin_id}/password")
