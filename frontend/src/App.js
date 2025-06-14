@@ -1663,7 +1663,7 @@ const AgentDashboard = () => {
                       <div className="ml-5 w-0 flex-1">
                         <dl>
                           <dt className="text-sm font-medium text-gray-500 truncate">Pending Requests</dt>
-                          <dd className="text-lg font-medium text-gray-900">{dashboardData.pending_requests}</dd>
+                          <dd className="text-lg font-medium text-gray-900">{dashboardData.pending_coin_requests}</dd>
                         </dl>
                       </div>
                     </div>
