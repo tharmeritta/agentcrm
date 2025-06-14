@@ -663,7 +663,7 @@ async def get_shop_prizes(current_user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=500, detail="Database connection failed")
         
     prizes = await database.prizes.find({"is_active": True}).to_list(1000)
-    return prizes
+    return convert_objectid_to_string(prizes)
 
 @api_router.post("/shop/redeem")
 async def redeem_prize(redeem_data: dict, current_user: dict = Depends(require_role([UserRole.AGENT]))):
