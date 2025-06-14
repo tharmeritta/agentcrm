@@ -447,17 +447,125 @@ async def update_user_credentials(user_id: str, update_data: dict, current_user:
     
     return {"message": "User credentials updated successfully"}
 
-@api_router.delete("/super-admin/prizes/{prize_id}")
-async def delete_prize(prize_id: str, current_user: dict = Depends(require_role([UserRole.SUPER_ADMIN]))):
+# Super Admin can grant/revoke shop management permissions to admins
+@api_router.put("/super-admin/admin/{admin_id}/shop-permissions")
+async def update_admin_shop_permissions(admin_id: str, permissions_data: dict, current_user: dict = Depends(require_role([UserRole.SUPER_ADMIN]))):
     database = await get_database()
     if database is None:
         raise HTTPException(status_code=500, detail="Database connection failed")
+    
+    admin = await database.users.find_one({"id": admin_id, "role": "admin"})
+    if not admin:
+        raise HTTPException(status_code=404, detail="Admin not found")
+    
+    # Update admin permissions
+    update_data = {}
+    if "can_create_prizes" in permissions_data:
+        update_data["can_create_prizes"] = permissions_data["can_create_prizes"]
+    if "can_edit_prizes" in permissions_data:
+        update_data["can_edit_prizes"] = permissions_data["can_edit_prizes"]
+    if "can_delete_prizes" in permissions_data:
+        update_data["can_delete_prizes"] = permissions_data["can_delete_prizes"]
+    
+    if update_data:
+        result = await database.users.update_one(
+            {"id": admin_id, "role": "admin"},
+            {"$set": update_data}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Admin not found")
+    
+    return {"message": "Admin shop permissions updated successfully"}
+
+# Admin Shop Management with Permission Checks
+@api_router.post("/admin/shop/prizes")
+async def create_prize_as_admin(prize_data: dict, current_user: dict = Depends(require_role([UserRole.ADMIN]))):
+    database = await get_database()
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    
+    # Check if admin has permission
+    admin = await database.users.find_one({"id": current_user["id"]})
+    if not admin.get("can_create_prizes", False):
+        raise HTTPException(status_code=403, detail="You don't have permission to create prizes")
+    
+    new_prize = Prize(
+        name=prize_data.get("name"),
+        description=prize_data.get("description", ""),
+        coin_cost=prize_data.get("coin_cost"),
+        is_limited=prize_data.get("is_limited", False),
+        quantity_available=prize_data.get("quantity_available"),
+        created_by=current_user["id"]
+    )
+    
+    await database.prizes.insert_one(new_prize.dict())
+    return {"message": "Prize created successfully", "prize_id": new_prize.id}
+
+@api_router.put("/admin/shop/prizes/{prize_id}")
+async def update_prize_as_admin(prize_id: str, prize_data: dict, current_user: dict = Depends(require_role([UserRole.ADMIN]))):
+    database = await get_database()
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    
+    # Check if admin has permission
+    admin = await database.users.find_one({"id": current_user["id"]})
+    if not admin.get("can_edit_prizes", False):
+        raise HTTPException(status_code=403, detail="You don't have permission to edit prizes")
+    
+    update_data = {}
+    if "name" in prize_data:
+        update_data["name"] = prize_data["name"]
+    if "description" in prize_data:
+        update_data["description"] = prize_data["description"]
+    if "coin_cost" in prize_data:
+        update_data["coin_cost"] = prize_data["coin_cost"]
+    if "is_limited" in prize_data:
+        update_data["is_limited"] = prize_data["is_limited"]
+    if "quantity_available" in prize_data:
+        update_data["quantity_available"] = prize_data["quantity_available"]
+    if "is_active" in prize_data:
+        update_data["is_active"] = prize_data["is_active"]
+    
+    result = await database.prizes.update_one({"id": prize_id}, {"$set": update_data})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Prize not found")
+    
+    return {"message": "Prize updated successfully"}
+
+@api_router.delete("/admin/shop/prizes/{prize_id}")
+async def delete_prize_as_admin(prize_id: str, current_user: dict = Depends(require_role([UserRole.ADMIN]))):
+    database = await get_database()
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    
+    # Check if admin has permission
+    admin = await database.users.find_one({"id": current_user["id"]})
+    if not admin.get("can_delete_prizes", False):
+        raise HTTPException(status_code=403, detail="You don't have permission to delete prizes")
     
     result = await database.prizes.delete_one({"id": prize_id})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Prize not found")
     
     return {"message": "Prize deleted successfully"}
+
+# Get admin's current permissions
+@api_router.get("/admin/shop/permissions")
+async def get_admin_shop_permissions(current_user: dict = Depends(require_role([UserRole.ADMIN]))):
+    database = await get_database()
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    
+    admin = await database.users.find_one({"id": current_user["id"]})
+    if not admin:
+        raise HTTPException(status_code=404, detail="Admin not found")
+    
+    return {
+        "can_create_prizes": admin.get("can_create_prizes", False),
+        "can_edit_prizes": admin.get("can_edit_prizes", False),
+        "can_delete_prizes": admin.get("can_delete_prizes", False)
+    }
 
 @api_router.post("/super-admin/admins")
 async def create_admin(user_data: UserCreate, current_user: dict = Depends(require_role([UserRole.SUPER_ADMIN]))):
