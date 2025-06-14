@@ -753,7 +753,7 @@ async def get_pending_reward_requests(current_user: dict = Depends(require_role(
         if agent:
             reward["agent_name"] = agent.get("name", agent.get("username"))
     
-    return rewards
+    return convert_objectid_to_string(rewards)
 
 @api_router.put("/admin/reward-requests/{reward_id}/approve")
 async def approve_reward_use(reward_id: str, current_user: dict = Depends(require_role([UserRole.ADMIN, UserRole.SUPER_ADMIN]))):
