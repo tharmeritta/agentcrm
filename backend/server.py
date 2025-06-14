@@ -512,15 +512,24 @@ async def create_sale_request(sale_data: dict, current_user: dict = Depends(requ
 
 @api_router.get("/agent/dashboard")
 async def get_agent_dashboard(current_user: dict = Depends(require_role([UserRole.AGENT]))):
-    agent = await db.users.find_one({"id": current_user["id"]})
+    database = await get_database()
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+        
+    agent = await database.users.find_one({"id": current_user["id"]})
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     
     # Get pending requests
-    pending_requests = await db.sale_requests.find({
+    pending_requests = await database.sale_requests.find({
         "agent_id": current_user["id"],
         "status": "pending"
     }).to_list(1000)
+    
+    # Calculate achievement percentage
+    target_monthly = agent.get("target_monthly", 0)
+    current_deposits = agent.get("deposits", 0)
+    achievement_percentage = (current_deposits / target_monthly * 100) if target_monthly > 0 else 0
     
     return {
         "agent_info": {
@@ -528,10 +537,50 @@ async def get_agent_dashboard(current_user: dict = Depends(require_role([UserRol
             "coins": agent.get("coins", 0),
             "deposits": agent.get("deposits", 0),
             "total_sales": agent.get("total_sales", 0),
-            "target_monthly": agent.get("target_monthly", 0)
+            "target_monthly": target_monthly,
+            "achievement_percentage": round(achievement_percentage, 2)
         },
         "pending_requests": len(pending_requests)
     }
+
+@api_router.get("/agent/leaderboard")
+async def get_agent_leaderboard(current_user: dict = Depends(require_role([UserRole.AGENT]))):
+    database = await get_database()
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    
+    # Get all agents sorted by deposits (highest first)
+    agents = await database.users.find({"role": "agent"}).to_list(1000)
+    
+    # Sort by deposits and prepare leaderboard
+    leaderboard = []
+    for agent in agents:
+        # Get total coins redeemed (from reward_bag)
+        coins_redeemed = 0
+        rewards = await database.reward_bag.find({"agent_id": agent["id"]}).to_list(1000)
+        
+        # Calculate total coins redeemed by looking at the coin cost of redeemed prizes
+        for reward in rewards:
+            prize = await database.prizes.find_one({"id": reward["prize_id"]})
+            if prize:
+                coins_redeemed += prize.get("coin_cost", 0)
+        
+        leaderboard.append({
+            "name": agent.get("name", agent.get("username", "Unknown")),
+            "deposits": agent.get("deposits", 0),
+            "coins_redeemed": coins_redeemed,
+            "total_sales": agent.get("total_sales", 0),
+            "is_current_user": agent["id"] == current_user["id"]
+        })
+    
+    # Sort by deposits (descending)
+    leaderboard.sort(key=lambda x: x["deposits"], reverse=True)
+    
+    # Add rank
+    for i, agent in enumerate(leaderboard):
+        agent["rank"] = i + 1
+    
+    return leaderboard
 
 @api_router.get("/shop/prizes")
 async def get_shop_prizes(current_user: dict = Depends(get_current_user)):
