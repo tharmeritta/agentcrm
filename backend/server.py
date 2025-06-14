@@ -643,16 +643,24 @@ async def get_agent_leaderboard(current_user: dict = Depends(require_role([UserR
 
 @api_router.get("/shop/prizes")
 async def get_shop_prizes(current_user: dict = Depends(get_current_user)):
-    prizes = await db.prizes.find({"is_active": True}).to_list(1000)
+    database = await get_database()
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+        
+    prizes = await database.prizes.find({"is_active": True}).to_list(1000)
     return prizes
 
 @api_router.post("/shop/redeem")
 async def redeem_prize(redeem_data: dict, current_user: dict = Depends(require_role([UserRole.AGENT]))):
+    database = await get_database()
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+        
     prize_id = redeem_data.get("prize_id")
     
     # Get prize and agent info
-    prize = await db.prizes.find_one({"id": prize_id, "is_active": True})
-    agent = await db.users.find_one({"id": current_user["id"]})
+    prize = await database.prizes.find_one({"id": prize_id, "is_active": True})
+    agent = await database.users.find_one({"id": current_user["id"]})
     
     if not prize:
         raise HTTPException(status_code=404, detail="Prize not found")
@@ -672,24 +680,85 @@ async def redeem_prize(redeem_data: dict, current_user: dict = Depends(require_r
     )
     
     # Update agent coins and prize quantity
-    await db.users.update_one(
+    await database.users.update_one(
         {"id": current_user["id"]},
         {"$inc": {"coins": -prize["coin_cost"]}}
     )
     
     if prize.get("is_limited", False):
-        await db.prizes.update_one(
+        await database.prizes.update_one(
             {"id": prize_id},
             {"$inc": {"quantity_available": -1}}
         )
     
-    await db.reward_bag.insert_one(reward_item.dict())
+    await database.reward_bag.insert_one(reward_item.dict())
     return {"message": "Prize redeemed successfully"}
 
 @api_router.get("/agent/reward-bag")
 async def get_reward_bag(current_user: dict = Depends(require_role([UserRole.AGENT]))):
-    rewards = await db.reward_bag.find({"agent_id": current_user["id"]}).to_list(1000)
+    database = await get_database()
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+        
+    rewards = await database.reward_bag.find({"agent_id": current_user["id"]}).to_list(1000)
     return rewards
+
+@api_router.post("/agent/reward-bag/{reward_id}/request-use")
+async def request_use_reward(reward_id: str, current_user: dict = Depends(require_role([UserRole.AGENT]))):
+    database = await get_database()
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+        
+    reward = await database.reward_bag.find_one({"id": reward_id, "agent_id": current_user["id"]})
+    if not reward:
+        raise HTTPException(status_code=404, detail="Reward not found")
+    
+    if reward["status"] != "unused":
+        raise HTTPException(status_code=400, detail="Reward is not available for use")
+    
+    # Update status to pending_use
+    await database.reward_bag.update_one(
+        {"id": reward_id},
+        {"$set": {"status": "pending_use"}}
+    )
+    
+    return {"message": "Use request submitted for admin approval"}
+
+@api_router.get("/admin/reward-requests")
+async def get_pending_reward_requests(current_user: dict = Depends(require_role([UserRole.ADMIN, UserRole.SUPER_ADMIN]))):
+    database = await get_database()
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+        
+    rewards = await database.reward_bag.find({"status": "pending_use"}).to_list(1000)
+    
+    # Add agent information
+    for reward in rewards:
+        agent = await database.users.find_one({"id": reward["agent_id"]})
+        if agent:
+            reward["agent_name"] = agent.get("name", agent.get("username"))
+    
+    return rewards
+
+@api_router.put("/admin/reward-requests/{reward_id}/approve")
+async def approve_reward_use(reward_id: str, current_user: dict = Depends(require_role([UserRole.ADMIN, UserRole.SUPER_ADMIN]))):
+    database = await get_database()
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+        
+    result = await database.reward_bag.update_one(
+        {"id": reward_id, "status": "pending_use"},
+        {"$set": {
+            "status": "used",
+            "used_at": datetime.utcnow(),
+            "approved_by": current_user["id"]
+        }}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Reward request not found")
+    
+    return {"message": "Reward use approved successfully"}
 
 # Include the router in the main app
 app.include_router(api_router)
