@@ -260,8 +260,115 @@ async def get_current_user_info(current_user: dict = Depends(get_current_user)):
 # Super Admin Routes
 @api_router.get("/super-admin/admins")
 async def get_all_admins(current_user: dict = Depends(require_role([UserRole.SUPER_ADMIN]))):
-    admins = await db.users.find({"role": "admin"}).to_list(1000)
+    database = await get_database()
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    
+    admins = await database.users.find({"role": "admin"}).to_list(1000)
     return admins
+
+@api_router.get("/super-admin/all-users")
+async def get_all_users(current_user: dict = Depends(require_role([UserRole.SUPER_ADMIN]))):
+    database = await get_database()
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    
+    # Get all users except super_admin
+    users = await database.users.find({"role": {"$in": ["admin", "agent"]}}).to_list(1000)
+    
+    # Remove password_hash from response
+    for user in users:
+        user.pop("password_hash", None)
+    
+    return users
+
+@api_router.post("/super-admin/agents")
+async def create_agent_by_super_admin(user_data: UserCreate, current_user: dict = Depends(require_role([UserRole.SUPER_ADMIN]))):
+    database = await get_database()
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+        
+    existing_user = await database.users.find_one({"username": user_data.username})
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Username already exists")
+    
+    new_agent = Agent(
+        username=user_data.username,
+        role=UserRole.AGENT,
+        name=user_data.name or user_data.username,
+        created_by=current_user["id"]
+    )
+    agent_dict = new_agent.dict()
+    agent_dict["password_hash"] = hash_password(user_data.password)
+    
+    await database.users.insert_one(agent_dict)
+    return {"message": "Agent created successfully", "agent_id": agent_dict["id"]}
+
+# Shop Management - Super Admin Only
+@api_router.get("/super-admin/prizes")
+async def get_all_prizes(current_user: dict = Depends(require_role([UserRole.SUPER_ADMIN]))):
+    database = await get_database()
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    
+    prizes = await database.prizes.find({}).to_list(1000)
+    return prizes
+
+@api_router.post("/super-admin/prizes")
+async def create_prize(prize_data: dict, current_user: dict = Depends(require_role([UserRole.SUPER_ADMIN]))):
+    database = await get_database()
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    
+    new_prize = Prize(
+        name=prize_data.get("name"),
+        description=prize_data.get("description", ""),
+        coin_cost=prize_data.get("coin_cost"),
+        is_limited=prize_data.get("is_limited", False),
+        quantity_available=prize_data.get("quantity_available"),
+        created_by=current_user["id"]
+    )
+    
+    await database.prizes.insert_one(new_prize.dict())
+    return {"message": "Prize created successfully", "prize_id": new_prize.id}
+
+@api_router.put("/super-admin/prizes/{prize_id}")
+async def update_prize(prize_id: str, prize_data: dict, current_user: dict = Depends(require_role([UserRole.SUPER_ADMIN]))):
+    database = await get_database()
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    
+    update_data = {}
+    if "name" in prize_data:
+        update_data["name"] = prize_data["name"]
+    if "description" in prize_data:
+        update_data["description"] = prize_data["description"]
+    if "coin_cost" in prize_data:
+        update_data["coin_cost"] = prize_data["coin_cost"]
+    if "is_limited" in prize_data:
+        update_data["is_limited"] = prize_data["is_limited"]
+    if "quantity_available" in prize_data:
+        update_data["quantity_available"] = prize_data["quantity_available"]
+    if "is_active" in prize_data:
+        update_data["is_active"] = prize_data["is_active"]
+    
+    result = await database.prizes.update_one({"id": prize_id}, {"$set": update_data})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Prize not found")
+    
+    return {"message": "Prize updated successfully"}
+
+@api_router.delete("/super-admin/prizes/{prize_id}")
+async def delete_prize(prize_id: str, current_user: dict = Depends(require_role([UserRole.SUPER_ADMIN]))):
+    database = await get_database()
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    
+    result = await database.prizes.delete_one({"id": prize_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Prize not found")
+    
+    return {"message": "Prize deleted successfully"}
 
 @api_router.post("/super-admin/admins")
 async def create_admin(user_data: UserCreate, current_user: dict = Depends(require_role([UserRole.SUPER_ADMIN]))):
