@@ -582,8 +582,9 @@ async def update_agent_target(agent_id: str, target_data: dict, current_user: di
     
     return {"message": "Agent target updated successfully"}
 
-@api_router.get("/admin/sale-requests")
-async def get_pending_sale_requests(current_user: dict = Depends(require_role([UserRole.ADMIN, UserRole.SUPER_ADMIN]))):
+# Coin Request Routes (renamed from sale requests)
+@api_router.get("/admin/coin-requests")
+async def get_pending_coin_requests(current_user: dict = Depends(require_role([UserRole.ADMIN, UserRole.SUPER_ADMIN]))):
     database = await get_database()
     if database is None:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -599,15 +600,15 @@ async def get_pending_sale_requests(current_user: dict = Depends(require_role([U
     
     return convert_objectid_to_string(requests)
 
-@api_router.put("/admin/sale-requests/{request_id}/approve")
-async def approve_sale_request(request_id: str, current_user: dict = Depends(require_role([UserRole.ADMIN, UserRole.SUPER_ADMIN]))):
+@api_router.put("/admin/coin-requests/{request_id}/approve")
+async def approve_coin_request(request_id: str, current_user: dict = Depends(require_role([UserRole.ADMIN, UserRole.SUPER_ADMIN]))):
     database = await get_database()
     if database is None:
         raise HTTPException(status_code=500, detail="Database connection failed")
         
     sale_request = await database.sale_requests.find_one({"id": request_id})
     if not sale_request:
-        raise HTTPException(status_code=404, detail="Sale request not found")
+        raise HTTPException(status_code=404, detail="Coin request not found")
     
     # Update sale request
     await database.sale_requests.update_one(
@@ -629,7 +630,7 @@ async def approve_sale_request(request_id: str, current_user: dict = Depends(req
         }}
     )
     
-    return {"message": "Sale request approved successfully"}
+    return {"message": "Coin request approved successfully"}
 
 # Agent Routes
 @api_router.post("/agent/sale-request")
