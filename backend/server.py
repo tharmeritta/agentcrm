@@ -5,6 +5,8 @@ from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
+import ssl
+import certifi
 from pathlib import Path
 from pydantic import BaseModel, Field
 from typing import List, Optional
