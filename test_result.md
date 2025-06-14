@@ -263,6 +263,81 @@ backend:
       - working: true
         agent: "testing"
         comment: "Agent leaderboard works correctly. Agent can view the leaderboard with proper ranking based on deposits. The current agent is correctly identified in the leaderboard."
+        
+  - task: "Enhanced Shop Management"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Testing enhanced shop management for Super Admin."
+      - working: true
+        agent: "testing"
+        comment: "Successfully tested creating prizes with POST /api/super-admin/prizes and editing prizes with PUT /api/super-admin/prizes/{prize_id}. Prize editing works correctly and changes persist. Created a prize with cost 1.0 and successfully updated it to 0.5."
+
+  - task: "Advanced User Credential Management"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Testing advanced user credential management."
+      - working: true
+        agent: "testing"
+        comment: "Successfully tested GET /api/super-admin/users/admins and GET /api/super-admin/users/agents for separate admin and agent views. Both endpoints return user lists with has_password field. Successfully tested PUT /api/super-admin/users/{user_id}/credentials to edit username, password, and name. Changes reflect correctly across all interfaces."
+
+  - task: "Super Admin Access to Coin Requests"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Testing Super Admin access to coin requests."
+      - working: true
+        agent: "testing"
+        comment: "Successfully tested GET /api/admin/coin-requests as Super Admin. Super Admin can see all agent coin requests with agent names displayed correctly. Also tested PUT /api/admin/coin-requests/{request_id}/approve as Super Admin and verified Super Admin can approve coin requests."
+
+  - task: "Coin Request System"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Testing the renamed 'Coin Request' system (previously 'sale requests')."
+      - working: true
+        agent: "testing"
+        comment: "Successfully tested POST /api/agent/coin-request for agent submitting coin requests. Verified GET /api/admin/coin-requests shows coin requests with agent names. Tested the complete approval flow: admin approves → agent gets coins + deposits. All endpoints and functionality work correctly with the new terminology."
+
+  - task: "Complete Workflow Test"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Testing the complete workflow with all enhanced features."
+      - working: true
+        agent: "testing"
+        comment: "Successfully tested the complete workflow: 1) Super Admin created a prize (cost: 1 coin), 2) Super Admin edited the prize (cost: 0.5 coins), 3) Super Admin created an agent account, 4) Agent submitted a coin request ($100 = 0.5 coins + 1 deposit), 5) Super Admin approved the coin request, 6) Verified agent received 0.5 coins and 1 deposit, 7) Agent redeemed the prize with coins, 8) Tested credential editing - changed agent's username and name. All steps completed successfully."
 
 metadata:
   created_by: "testing_agent"
