@@ -1694,9 +1694,26 @@ const AgentDashboard = () => {
                         }}
                       ></div>
                     </div>
-                    <div className="text-center text-lg font-bold text-gray-900">
-                      {dashboardData.agent_info.achievement_percentage}% Complete
-                    </div>
+        const submitCoinRequest = async () => {
+    if (!selectedSale) {
+      alert('Please select a sale amount');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await axios.post(`${API}/agent/coin-request`, {
+        sale_amount: selectedSale
+      });
+      setSelectedSale('');
+      fetchDashboardData();
+      alert('Coin request submitted successfully!');
+    } catch (error) {
+      alert(error.response?.data?.detail || 'Error submitting coin request');
+    } finally {
+      setLoading(false);
+    }
+  };
                   </div>
                 </div>
               )}
