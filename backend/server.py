@@ -280,7 +280,7 @@ async def get_all_admins(current_user: dict = Depends(require_role([UserRole.SUP
         raise HTTPException(status_code=500, detail="Database connection failed")
     
     admins = await database.users.find({"role": "admin"}).to_list(1000)
-    return admins
+    return convert_objectid_to_string(admins)
 
 @api_router.get("/super-admin/all-users")
 async def get_all_users(current_user: dict = Depends(require_role([UserRole.SUPER_ADMIN]))):
