@@ -179,9 +179,9 @@ backend:
 
   - task: "User management"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/server.py"
-    stuck_count: 1
+    stuck_count: 0
     priority: "high"
     needs_retesting: false
     status_history:
@@ -191,6 +191,9 @@ backend:
       - working: false
         agent: "testing"
         comment: "Super Admin can create admin users and agent users. Admin can create agent users. All user creation endpoints work correctly. However, listing all users with GET /api/super-admin/all-users fails with a 500 Internal Server Error."
+      - working: true
+        agent: "testing"
+        comment: "Retested user management functionality. Super Admin can now successfully list all users with GET /api/super-admin/all-users. The MongoDB ObjectId serialization issue has been fixed."
 
   - task: "Sales request workflow"
     implemented: true
