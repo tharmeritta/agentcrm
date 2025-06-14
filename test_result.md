@@ -161,9 +161,9 @@ backend:
 
   - task: "Shop management"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/server.py"
-    stuck_count: 1
+    stuck_count: 0
     priority: "high"
     needs_retesting: false
     status_history:
@@ -173,6 +173,9 @@ backend:
       - working: false
         agent: "testing"
         comment: "Prize creation works successfully, but listing prizes fails with a 500 Internal Server Error. Creating prizes with limited quantity also works."
+      - working: true
+        agent: "testing"
+        comment: "Retested shop management functionality. Prize creation and listing prizes now work correctly. The MongoDB ObjectId serialization issue has been fixed."
 
   - task: "User management"
     implemented: true
