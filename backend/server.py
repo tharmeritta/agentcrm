@@ -373,6 +373,43 @@ async def update_prize(prize_id: str, prize_data: dict, current_user: dict = Dep
     
     return {"message": "Prize updated successfully"}
 
+# User Credential Management
+@api_router.put("/super-admin/users/{user_id}/credentials")
+async def update_user_credentials(user_id: str, update_data: dict, current_user: dict = Depends(require_role([UserRole.SUPER_ADMIN]))):
+    database = await get_database()
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    
+    user = await database.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Prevent editing super admin
+    if user.get("role") == "super_admin":
+        raise HTTPException(status_code=403, detail="Cannot edit super admin credentials")
+    
+    # Build update data
+    updates = {}
+    if "username" in update_data and update_data["username"]:
+        # Check if username already exists
+        existing = await database.users.find_one({"username": update_data["username"], "id": {"$ne": user_id}})
+        if existing:
+            raise HTTPException(status_code=400, detail="Username already exists")
+        updates["username"] = update_data["username"]
+    
+    if "password" in update_data and update_data["password"]:
+        updates["password_hash"] = hash_password(update_data["password"])
+    
+    if "name" in update_data:
+        updates["name"] = update_data["name"]
+    
+    if updates:
+        result = await database.users.update_one({"id": user_id}, {"$set": updates})
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="User not found")
+    
+    return {"message": "User credentials updated successfully"}
+
 @api_router.delete("/super-admin/prizes/{prize_id}")
 async def delete_prize(prize_id: str, current_user: dict = Depends(require_role([UserRole.SUPER_ADMIN]))):
     database = await get_database()
