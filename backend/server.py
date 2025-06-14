@@ -105,6 +105,10 @@ class User(UserBase):
     created_by: Optional[str] = None
     target_monthly: Optional[float] = 0.0
     is_active: bool = True
+    # Admin permissions for shop management
+    can_create_prizes: bool = False
+    can_edit_prizes: bool = False
+    can_delete_prizes: bool = False
 
 class Agent(User):
     coins: float = 0.0
