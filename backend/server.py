@@ -383,6 +383,10 @@ async def approve_sale_request(request_id: str, current_user: dict = Depends(req
 # Agent Routes
 @api_router.post("/agent/sale-request")
 async def create_sale_request(sale_data: dict, current_user: dict = Depends(require_role([UserRole.AGENT]))):
+    database = await get_database()
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+        
     sale_amount = sale_data.get("sale_amount")
     if sale_amount not in ["100", "250", "500"]:
         raise HTTPException(status_code=400, detail="Invalid sale amount")
@@ -396,7 +400,7 @@ async def create_sale_request(sale_data: dict, current_user: dict = Depends(requ
         deposits_requested=calculation["deposits"]
     )
     
-    await db.sale_requests.insert_one(sale_request.dict())
+    await database.sale_requests.insert_one(sale_request.dict())
     return {"message": "Sale request submitted successfully"}
 
 @api_router.get("/agent/dashboard")
