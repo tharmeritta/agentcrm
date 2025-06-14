@@ -196,6 +196,16 @@ def require_role(required_roles: List[UserRole]):
         return current_user
     return role_checker
 
+def convert_objectid_to_string(document):
+    """Convert MongoDB ObjectId fields to strings for JSON serialization"""
+    if isinstance(document, dict):
+        if "_id" in document:
+            document["_id"] = str(document["_id"])
+        return document
+    elif isinstance(document, list):
+        return [convert_objectid_to_string(doc) for doc in document]
+    return document
+
 def calculate_coins_and_deposits(sale_amount: str):
     amounts = {
         "100": {"coins": 0.5, "deposits": 1},
