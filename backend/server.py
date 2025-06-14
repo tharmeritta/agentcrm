@@ -24,16 +24,32 @@ import ssl
 import certifi
 
 mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(
-    mongo_url,
-    serverSelectionTimeoutMS=15000,
-    connectTimeoutMS=30000,
-    socketTimeoutMS=30000,
-    maxPoolSize=10,
-    tlsCAFile=certifi.where(),
-    tlsAllowInvalidCertificates=True
-)
-db = client[os.environ['DB_NAME']]
+client = None
+db = None
+
+async def get_database():
+    global client, db
+    if client is None:
+        try:
+            client = AsyncIOMotorClient(
+                mongo_url,
+                serverSelectionTimeoutMS=5000,
+                connectTimeoutMS=10000,
+                socketTimeoutMS=10000,
+                maxPoolSize=10,
+                tlsAllowInvalidCertificates=True
+            )
+            db = client[os.environ['DB_NAME']]
+            # Test connection
+            await client.admin.command('ping')
+            print("MongoDB Atlas connected successfully!")
+        except Exception as e:
+            print(f"MongoDB Atlas connection failed: {e}")
+            # Fall back to local MongoDB
+            client = AsyncIOMotorClient("mongodb://localhost:27017")
+            db = client[os.environ['DB_NAME']]
+            print("Connected to local MongoDB instead")
+    return db
 
 # JWT Configuration
 JWT_SECRET = os.environ.get('JWT_SECRET', 'your-fallback-secret')
