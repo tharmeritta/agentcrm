@@ -716,7 +716,7 @@ async def get_reward_bag(current_user: dict = Depends(require_role([UserRole.AGE
         raise HTTPException(status_code=500, detail="Database connection failed")
         
     rewards = await database.reward_bag.find({"agent_id": current_user["id"]}).to_list(1000)
-    return rewards
+    return convert_objectid_to_string(rewards)
 
 @api_router.post("/agent/reward-bag/{reward_id}/request-use")
 async def request_use_reward(reward_id: str, current_user: dict = Depends(require_role([UserRole.AGENT]))):
