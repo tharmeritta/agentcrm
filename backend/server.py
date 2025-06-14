@@ -665,7 +665,7 @@ async def get_agent_dashboard(current_user: dict = Depends(require_role([UserRol
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     
-    # Get pending requests
+    # Get pending coin requests (renamed from sale requests)
     pending_requests = await database.sale_requests.find({
         "agent_id": current_user["id"],
         "status": "pending"
@@ -685,7 +685,7 @@ async def get_agent_dashboard(current_user: dict = Depends(require_role([UserRol
             "target_monthly": target_monthly,
             "achievement_percentage": round(achievement_percentage, 2)
         },
-        "pending_requests": len(pending_requests)
+        "pending_coin_requests": len(pending_requests)
     }
 
 @api_router.get("/agent/leaderboard")
