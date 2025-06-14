@@ -197,9 +197,9 @@ backend:
 
   - task: "Sales request workflow"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/server.py"
-    stuck_count: 1
+    stuck_count: 0
     priority: "high"
     needs_retesting: false
     status_history:
@@ -209,6 +209,9 @@ backend:
       - working: false
         agent: "testing"
         comment: "Agent can submit a sale request successfully, but admin cannot view pending requests. GET /api/admin/sale-requests fails with a 500 Internal Server Error."
+      - working: true
+        agent: "testing"
+        comment: "Retested sales request workflow. Agent can submit a sale request, admin can view pending requests with agent name displayed correctly, and admin can approve the request. The agent's coins and deposits are updated correctly after approval. The MongoDB ObjectId serialization issue has been fixed."
 
   - task: "Target system"
     implemented: true
