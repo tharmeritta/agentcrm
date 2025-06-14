@@ -291,11 +291,11 @@ async def get_all_users(current_user: dict = Depends(require_role([UserRole.SUPE
     # Get all users except super_admin
     users = await database.users.find({"role": {"$in": ["admin", "agent"]}}).to_list(1000)
     
-    # Remove password_hash from response
+    # Remove password_hash from response and convert ObjectId
     for user in users:
         user.pop("password_hash", None)
     
-    return users
+    return convert_objectid_to_string(users)
 
 @api_router.post("/super-admin/agents")
 async def create_agent_by_super_admin(user_data: UserCreate, current_user: dict = Depends(require_role([UserRole.SUPER_ADMIN]))):
