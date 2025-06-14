@@ -174,7 +174,12 @@ def decode_jwt_token(token: str) -> dict:
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     token = credentials.credentials
     payload = decode_jwt_token(token)
-    user = await db.users.find_one({"id": payload["user_id"]})
+    
+    database = await get_database()
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+        
+    user = await database.users.find_one({"id": payload["user_id"]})
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
     return user
