@@ -31,6 +31,14 @@ test_results = {
     "leaderboard": {"status": "Not tested", "details": ""}
 }
 
+print("=" * 80)
+print("TESTING FIXED CRM SYSTEM - MONGODB OBJECTID SERIALIZATION ISSUES")
+print("=" * 80)
+print(f"Starting tests at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+print(f"Backend URL: {BACKEND_URL}")
+print(f"API URL: {BASE_URL}")
+print("=" * 80)
+
 # Store tokens and IDs for different users
 tokens = {
     "super_admin": None,
