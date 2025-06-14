@@ -198,7 +198,7 @@ def calculate_coins_and_deposits(sale_amount: str):
 async def initialize_super_admin():
     # Get database connection first
     database = await get_database()
-    if not database:
+    if database is None:
         print("Failed to initialize database connection")
         return
         
