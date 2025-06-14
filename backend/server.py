@@ -350,12 +350,16 @@ async def get_pending_sale_requests(current_user: dict = Depends(require_role([U
 
 @api_router.put("/admin/sale-requests/{request_id}/approve")
 async def approve_sale_request(request_id: str, current_user: dict = Depends(require_role([UserRole.ADMIN, UserRole.SUPER_ADMIN]))):
-    sale_request = await db.sale_requests.find_one({"id": request_id})
+    database = await get_database()
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+        
+    sale_request = await database.sale_requests.find_one({"id": request_id})
     if not sale_request:
         raise HTTPException(status_code=404, detail="Sale request not found")
     
     # Update sale request
-    await db.sale_requests.update_one(
+    await database.sale_requests.update_one(
         {"id": request_id},
         {"$set": {
             "status": "approved",
@@ -365,7 +369,7 @@ async def approve_sale_request(request_id: str, current_user: dict = Depends(req
     )
     
     # Update agent coins and deposits
-    await db.users.update_one(
+    await database.users.update_one(
         {"id": sale_request["agent_id"]},
         {"$inc": {
             "coins": sale_request["coins_requested"],
