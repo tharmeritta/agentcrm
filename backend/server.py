@@ -633,8 +633,8 @@ async def approve_coin_request(request_id: str, current_user: dict = Depends(req
     return {"message": "Coin request approved successfully"}
 
 # Agent Routes
-@api_router.post("/agent/sale-request")
-async def create_sale_request(sale_data: dict, current_user: dict = Depends(require_role([UserRole.AGENT]))):
+@api_router.post("/agent/coin-request")
+async def create_coin_request(sale_data: dict, current_user: dict = Depends(require_role([UserRole.AGENT]))):
     database = await get_database()
     if database is None:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -653,7 +653,7 @@ async def create_sale_request(sale_data: dict, current_user: dict = Depends(requ
     )
     
     await database.sale_requests.insert_one(sale_request.dict())
-    return {"message": "Sale request submitted successfully"}
+    return {"message": "Coin request submitted successfully"}
 
 @api_router.get("/agent/dashboard")
 async def get_agent_dashboard(current_user: dict = Depends(require_role([UserRole.AGENT]))):
