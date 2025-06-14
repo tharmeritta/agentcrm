@@ -155,13 +155,28 @@ const Login = () => {
 // Super Admin Dashboard
 const SuperAdminDashboard = () => {
   const [admins, setAdmins] = useState([]);
-  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [allUsers, setAllUsers] = useState([]);
+  const [prizes, setPrizes] = useState([]);
+  const [showCreateAdminForm, setShowCreateAdminForm] = useState(false);
+  const [showCreateAgentForm, setShowCreateAgentForm] = useState(false);
+  const [showCreatePrizeForm, setShowCreatePrizeForm] = useState(false);
   const [newAdmin, setNewAdmin] = useState({ username: '', password: '', name: '' });
+  const [newAgent, setNewAgent] = useState({ username: '', password: '', name: '' });
+  const [newPrize, setNewPrize] = useState({ 
+    name: '', 
+    description: '', 
+    coin_cost: 0, 
+    is_limited: false, 
+    quantity_available: null 
+  });
+  const [activeTab, setActiveTab] = useState('admins');
   const [loading, setLoading] = useState(false);
   const { logout } = useAuth();
 
   useEffect(() => {
     fetchAdmins();
+    fetchAllUsers();
+    fetchPrizes();
   }, []);
 
   const fetchAdmins = async () => {
@@ -170,6 +185,24 @@ const SuperAdminDashboard = () => {
       setAdmins(response.data);
     } catch (error) {
       console.error('Error fetching admins:', error);
+    }
+  };
+
+  const fetchAllUsers = async () => {
+    try {
+      const response = await axios.get(`${API}/super-admin/all-users`);
+      setAllUsers(response.data);
+    } catch (error) {
+      console.error('Error fetching all users:', error);
+    }
+  };
+
+  const fetchPrizes = async () => {
+    try {
+      const response = await axios.get(`${API}/super-admin/prizes`);
+      setPrizes(response.data);
+    } catch (error) {
+      console.error('Error fetching prizes:', error);
     }
   };
 
@@ -182,12 +215,63 @@ const SuperAdminDashboard = () => {
         role: 'admin'
       });
       setNewAdmin({ username: '', password: '', name: '' });
-      setShowCreateForm(false);
+      setShowCreateAdminForm(false);
       fetchAdmins();
+      fetchAllUsers();
     } catch (error) {
       alert(error.response?.data?.detail || 'Error creating admin');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const createAgent = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await axios.post(`${API}/super-admin/agents`, {
+        ...newAgent,
+        role: 'agent'
+      });
+      setNewAgent({ username: '', password: '', name: '' });
+      setShowCreateAgentForm(false);
+      fetchAllUsers();
+    } catch (error) {
+      alert(error.response?.data?.detail || 'Error creating agent');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createPrize = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await axios.post(`${API}/super-admin/prizes`, newPrize);
+      setNewPrize({ 
+        name: '', 
+        description: '', 
+        coin_cost: 0, 
+        is_limited: false, 
+        quantity_available: null 
+      });
+      setShowCreatePrizeForm(false);
+      fetchPrizes();
+    } catch (error) {
+      alert(error.response?.data?.detail || 'Error creating prize');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deletePrize = async (prizeId) => {
+    if (window.confirm('Are you sure you want to delete this prize?')) {
+      try {
+        await axios.delete(`${API}/super-admin/prizes/${prizeId}`);
+        fetchPrizes();
+      } catch (error) {
+        alert(error.response?.data?.detail || 'Error deleting prize');
+      }
     }
   };
 
@@ -196,6 +280,7 @@ const SuperAdminDashboard = () => {
       try {
         await axios.delete(`${API}/super-admin/admins/${adminId}`);
         fetchAdmins();
+        fetchAllUsers();
       } catch (error) {
         alert(error.response?.data?.detail || 'Error deleting admin');
       }
@@ -225,32 +310,77 @@ const SuperAdminDashboard = () => {
 
       <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
-          <div className="bg-white shadow rounded-lg">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <div className="flex justify-between items-center">
-                <h2 className="text-lg font-medium text-gray-900">Admin Management</h2>
-                <button
-                  onClick={() => setShowCreateForm(true)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
-                >
-                  Create New Admin
-                </button>
-              </div>
-            </div>
+          {/* Tab Navigation */}
+          <div className="mb-6">
+            <nav className="flex space-x-8">
+              <button
+                onClick={() => setActiveTab('admins')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'admins'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Admins ({admins.length})
+              </button>
+              <button
+                onClick={() => setActiveTab('users')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'users'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                All Users ({allUsers.length})
+              </button>
+              <button
+                onClick={() => setActiveTab('shop')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'shop'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Shop Management ({prizes.length})
+              </button>
+            </nav>
+          </div>
 
-            <div className="p-6">
-              {admins.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">No admins created yet</p>
-              ) : (
-                <div className="space-y-4">
-                  {admins.map((admin) => (
-                    <div key={admin.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                      <div>
-                        <h3 className="font-medium text-gray-900">{admin.name || admin.username}</h3>
-                        <p className="text-sm text-gray-500">Username: {admin.username}</p>
-                        <p className="text-sm text-gray-500">Created: {new Date(admin.created_at).toLocaleDateString()}</p>
-                      </div>
-                      <div className="flex space-x-2">
+          {/* Admins Tab */}
+          {activeTab === 'admins' && (
+            <div className="bg-white shadow rounded-lg">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-lg font-medium text-gray-900">Admin Management</h2>
+                  <div className="space-x-2">
+                    <button
+                      onClick={() => setShowCreateAdminForm(true)}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
+                    >
+                      Create Admin
+                    </button>
+                    <button
+                      onClick={() => setShowCreateAgentForm(true)}
+                      className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
+                    >
+                      Create Agent
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6">
+                {admins.length === 0 ? (
+                  <p className="text-gray-500 text-center py-8">No admins created yet</p>
+                ) : (
+                  <div className="space-y-4">
+                    {admins.map((admin) => (
+                      <div key={admin.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                        <div>
+                          <h3 className="font-medium text-gray-900">{admin.name || admin.username}</h3>
+                          <p className="text-sm text-gray-500">Username: {admin.username}</p>
+                          <p className="text-sm text-gray-500">Created: {new Date(admin.created_at).toLocaleDateString()}</p>
+                        </div>
                         <button
                           onClick={() => deleteAdmin(admin.id)}
                           className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm"
@@ -258,17 +388,125 @@ const SuperAdminDashboard = () => {
                           Delete
                         </button>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* All Users Tab */}
+          {activeTab === 'users' && (
+            <div className="bg-white shadow rounded-lg">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h2 className="text-lg font-medium text-gray-900">All User Credentials</h2>
+              </div>
+
+              <div className="p-6">
+                {allUsers.length === 0 ? (
+                  <p className="text-gray-500 text-center py-8">No users found</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stats</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {allUsers.map((user) => (
+                          <tr key={user.id}>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                              {user.name || user.username}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {user.username}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                user.role === 'admin' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
+                              }`}>
+                                {user.role}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {new Date(user.created_at).toLocaleDateString()}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {user.role === 'agent' && (
+                                <div>
+                                  <div>Coins: {user.coins || 0}</div>
+                                  <div>Deposits: {user.deposits || 0}</div>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Shop Management Tab */}
+          {activeTab === 'shop' && (
+            <div className="bg-white shadow rounded-lg">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-lg font-medium text-gray-900">Shop Management</h2>
+                  <button
+                    onClick={() => setShowCreatePrizeForm(true)}
+                    className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
+                  >
+                    Create Prize
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-6">
+                {prizes.length === 0 ? (
+                  <p className="text-gray-500 text-center py-8">No prizes created yet</p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {prizes.map((prize) => (
+                      <div key={prize.id} className="border border-gray-200 rounded-lg p-4">
+                        <h3 className="font-medium text-gray-900">{prize.name}</h3>
+                        <p className="text-sm text-gray-500 mt-1">{prize.description}</p>
+                        <div className="mt-3 space-y-1">
+                          <div className="text-lg font-bold text-purple-600">{prize.coin_cost} coins</div>
+                          <div className="text-sm text-gray-500">
+                            {prize.is_limited ? `Limited: ${prize.quantity_available} left` : 'Unlimited'}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            Status: {prize.is_active ? 'Active' : 'Inactive'}
+                          </div>
+                        </div>
+                        <div className="mt-3 flex space-x-2">
+                          <button
+                            onClick={() => deletePrize(prize.id)}
+                            className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Create Admin Modal */}
-      {showCreateForm && (
+      {showCreateAdminForm && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Create New Admin</h3>
@@ -305,7 +543,7 @@ const SuperAdminDashboard = () => {
               <div className="flex justify-end space-x-3">
                 <button
                   type="button"
-                  onClick={() => setShowCreateForm(false)}
+                  onClick={() => setShowCreateAdminForm(false)}
                   className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
                 >
                   Cancel
@@ -316,6 +554,140 @@ const SuperAdminDashboard = () => {
                   className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
                 >
                   {loading ? 'Creating...' : 'Create Admin'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Create Agent Modal */}
+      {showCreateAgentForm && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Create New Agent</h3>
+            <form onSubmit={createAgent} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                <input
+                  type="text"
+                  value={newAgent.username}
+                  onChange={(e) => setNewAgent({...newAgent, username: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                <input
+                  type="password"
+                  value={newAgent.password}
+                  onChange={(e) => setNewAgent({...newAgent, password: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                <input
+                  type="text"
+                  value={newAgent.name}
+                  onChange={(e) => setNewAgent({...newAgent, name: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div className="flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateAgentForm(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50"
+                >
+                  {loading ? 'Creating...' : 'Create Agent'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Create Prize Modal */}
+      {showCreatePrizeForm && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Create New Prize</h3>
+            <form onSubmit={createPrize} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Prize Name</label>
+                <input
+                  type="text"
+                  value={newPrize.name}
+                  onChange={(e) => setNewPrize({...newPrize, name: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea
+                  value={newPrize.description}
+                  onChange={(e) => setNewPrize({...newPrize, description: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                  rows={3}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Coin Cost</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={newPrize.coin_cost}
+                  onChange={(e) => setNewPrize({...newPrize, coin_cost: parseFloat(e.target.value)})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={newPrize.is_limited}
+                  onChange={(e) => setNewPrize({...newPrize, is_limited: e.target.checked})}
+                  className="mr-2"
+                />
+                <label className="text-sm font-medium text-gray-700">Limited Quantity</label>
+              </div>
+              {newPrize.is_limited && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Available Quantity</label>
+                  <input
+                    type="number"
+                    value={newPrize.quantity_available || ''}
+                    onChange={(e) => setNewPrize({...newPrize, quantity_available: parseInt(e.target.value)})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+              )}
+              <div className="flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setShowCreatePrizeForm(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 disabled:opacity-50"
+                >
+                  {loading ? 'Creating...' : 'Create Prize'}
                 </button>
               </div>
             </form>
