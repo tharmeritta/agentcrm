@@ -394,11 +394,15 @@ async def create_admin(user_data: UserCreate, current_user: dict = Depends(requi
 
 @api_router.put("/super-admin/admins/{admin_id}/password")
 async def change_admin_password(admin_id: str, password_data: dict, current_user: dict = Depends(require_role([UserRole.SUPER_ADMIN]))):
+    database = await get_database()
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+        
     new_password = password_data.get("new_password")
     if not new_password:
         raise HTTPException(status_code=400, detail="New password is required")
     
-    result = await db.users.update_one(
+    result = await database.users.update_one(
         {"id": admin_id, "role": "admin"},
         {"$set": {"password_hash": hash_password(new_password)}}
     )
@@ -410,7 +414,11 @@ async def change_admin_password(admin_id: str, password_data: dict, current_user
 
 @api_router.delete("/super-admin/admins/{admin_id}")
 async def delete_admin(admin_id: str, current_user: dict = Depends(require_role([UserRole.SUPER_ADMIN]))):
-    result = await db.users.delete_one({"id": admin_id, "role": "admin"})
+    database = await get_database()
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+        
+    result = await database.users.delete_one({"id": admin_id, "role": "admin"})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Admin not found")
     return {"message": "Admin deleted successfully"}
@@ -418,15 +426,42 @@ async def delete_admin(admin_id: str, current_user: dict = Depends(require_role(
 # Admin Routes
 @api_router.get("/admin/agents")
 async def get_all_agents(current_user: dict = Depends(require_role([UserRole.ADMIN, UserRole.SUPER_ADMIN]))):
+    database = await get_database()
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+        
     if current_user["role"] == "admin":
-        agents = await db.users.find({"role": "agent", "created_by": current_user["id"]}).to_list(1000)
+        # Admin sees agents they created + agents created by super admin
+        agents = await database.users.find({
+            "role": "agent",
+            "$or": [
+                {"created_by": current_user["id"]},
+                {"created_by": {"$exists": False}},  # Legacy data
+                {"created_by": {"$in": await get_super_admin_ids(database)}}
+            ]
+        }).to_list(1000)
     else:
-        agents = await db.users.find({"role": "agent"}).to_list(1000)
+        # Super admin sees all agents
+        agents = await database.users.find({"role": "agent"}).to_list(1000)
+    
+    # Remove password_hash from response
+    for agent in agents:
+        agent.pop("password_hash", None)
+    
     return agents
+
+async def get_super_admin_ids(database):
+    """Helper function to get super admin IDs"""
+    super_admins = await database.users.find({"role": "super_admin"}).to_list(1000)
+    return [sa["id"] for sa in super_admins]
 
 @api_router.post("/admin/agents")
 async def create_agent(user_data: UserCreate, current_user: dict = Depends(require_role([UserRole.ADMIN, UserRole.SUPER_ADMIN]))):
-    existing_user = await db.users.find_one({"username": user_data.username})
+    database = await get_database()
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+        
+    existing_user = await database.users.find_one({"username": user_data.username})
     if existing_user:
         raise HTTPException(status_code=400, detail="Username already exists")
     
@@ -439,8 +474,28 @@ async def create_agent(user_data: UserCreate, current_user: dict = Depends(requi
     agent_dict = new_agent.dict()
     agent_dict["password_hash"] = hash_password(user_data.password)
     
-    await db.users.insert_one(agent_dict)
+    await database.users.insert_one(agent_dict)
     return {"message": "Agent created successfully", "agent_id": agent_dict["id"]}
+
+@api_router.put("/admin/agents/{agent_id}/target")
+async def update_agent_target(agent_id: str, target_data: dict, current_user: dict = Depends(require_role([UserRole.ADMIN, UserRole.SUPER_ADMIN]))):
+    database = await get_database()
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+        
+    target_monthly = target_data.get("target_monthly")
+    if target_monthly is None or target_monthly < 0:
+        raise HTTPException(status_code=400, detail="Valid target_monthly is required")
+    
+    result = await database.users.update_one(
+        {"id": agent_id, "role": "agent"},
+        {"$set": {"target_monthly": target_monthly}}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    
+    return {"message": "Agent target updated successfully"}
 
 @api_router.get("/admin/sale-requests")
 async def get_pending_sale_requests(current_user: dict = Depends(require_role([UserRole.ADMIN, UserRole.SUPER_ADMIN]))):
