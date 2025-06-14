@@ -1477,7 +1477,7 @@ const AgentDashboard = () => {
     }
   };
 
-  const submitSaleRequest = async () => {
+  const submitCoinRequest = async () => {
     if (!selectedSale) {
       alert('Please select a sale amount');
       return;
@@ -1485,14 +1485,14 @@ const AgentDashboard = () => {
 
     setLoading(true);
     try {
-      await axios.post(`${API}/agent/sale-request`, {
+      await axios.post(`${API}/agent/coin-request`, {
         sale_amount: selectedSale
       });
       setSelectedSale('');
       fetchDashboardData();
-      alert('Sale request submitted successfully!');
+      alert('Coin request submitted successfully!');
     } catch (error) {
-      alert(error.response?.data?.detail || 'Error submitting sale request');
+      alert(error.response?.data?.detail || 'Error submitting coin request');
     } finally {
       setLoading(false);
     }
