@@ -30,8 +30,8 @@ client = AsyncIOMotorClient(
     connectTimeoutMS=30000,
     socketTimeoutMS=30000,
     maxPoolSize=10,
-    ssl_cert_reqs=ssl.CERT_NONE,
-    tlsCAFile=certifi.where()
+    tlsCAFile=certifi.where(),
+    tlsAllowInvalidCertificates=True
 )
 db = client[os.environ['DB_NAME']]
 
