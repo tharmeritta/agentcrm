@@ -463,7 +463,7 @@ async def get_all_agents(current_user: dict = Depends(require_role([UserRole.ADM
     for agent in agents:
         agent.pop("password_hash", None)
     
-    return agents
+    return convert_objectid_to_string(agents)
 
 async def get_super_admin_ids(database):
     """Helper function to get super admin IDs"""
