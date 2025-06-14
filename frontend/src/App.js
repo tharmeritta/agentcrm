@@ -1090,6 +1090,7 @@ const AdminDashboard = () => {
 // Agent Dashboard
 const AgentDashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
+  const [leaderboard, setLeaderboard] = useState([]);
   const [prizes, setPrizes] = useState([]);
   const [rewardBag, setRewardBag] = useState([]);
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -1099,6 +1100,7 @@ const AgentDashboard = () => {
 
   useEffect(() => {
     fetchDashboardData();
+    fetchLeaderboard();
     fetchPrizes();
     fetchRewardBag();
   }, []);
@@ -1109,6 +1111,15 @@ const AgentDashboard = () => {
       setDashboardData(response.data);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
+    }
+  };
+
+  const fetchLeaderboard = async () => {
+    try {
+      const response = await axios.get(`${API}/agent/leaderboard`);
+      setLeaderboard(response.data);
+    } catch (error) {
+      console.error('Error fetching leaderboard:', error);
     }
   };
 
@@ -1163,6 +1174,16 @@ const AgentDashboard = () => {
     }
   };
 
+  const requestUseReward = async (rewardId) => {
+    try {
+      await axios.post(`${API}/agent/reward-bag/${rewardId}/request-use`);
+      fetchRewardBag();
+      alert('Use request submitted for admin approval!');
+    } catch (error) {
+      alert(error.response?.data?.detail || 'Error requesting reward use');
+    }
+  };
+
   if (!dashboardData) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
@@ -1202,6 +1223,16 @@ const AgentDashboard = () => {
                 }`}
               >
                 Dashboard
+              </button>
+              <button
+                onClick={() => setActiveTab('leaderboard')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'leaderboard'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Leaderboard
               </button>
               <button
                 onClick={() => setActiveTab('shop')}
@@ -1304,6 +1335,36 @@ const AgentDashboard = () => {
                 </div>
               </div>
 
+              {/* Target Progress */}
+              {dashboardData.agent_info.target_monthly > 0 && (
+                <div className="bg-white shadow rounded-lg p-6">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Monthly Target Progress</h3>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm text-gray-600">
+                      <span>Target: {dashboardData.agent_info.target_monthly} deposits</span>
+                      <span>Current: {dashboardData.agent_info.deposits} deposits</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-4">
+                      <div
+                        className={`h-4 rounded-full ${
+                          dashboardData.agent_info.achievement_percentage >= 100 
+                            ? 'bg-green-500' 
+                            : dashboardData.agent_info.achievement_percentage >= 75 
+                              ? 'bg-yellow-500' 
+                              : 'bg-blue-500'
+                        }`}
+                        style={{
+                          width: `${Math.min(dashboardData.agent_info.achievement_percentage, 100)}%`
+                        }}
+                      ></div>
+                    </div>
+                    <div className="text-center text-lg font-bold text-gray-900">
+                      {dashboardData.agent_info.achievement_percentage}% Complete
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Sale Request Form */}
               <div className="bg-white shadow rounded-lg">
                 <div className="px-6 py-4 border-b border-gray-200">
@@ -1339,6 +1400,50 @@ const AgentDashboard = () => {
             </div>
           )}
 
+          {/* Leaderboard Tab */}
+          {activeTab === 'leaderboard' && (
+            <div className="bg-white shadow rounded-lg">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h2 className="text-lg font-medium text-gray-900">Agent Leaderboard</h2>
+              </div>
+              <div className="p-6">
+                {leaderboard.length === 0 ? (
+                  <p className="text-gray-500 text-center py-8">No leaderboard data available</p>
+                ) : (
+                  <div className="space-y-4">
+                    {leaderboard.map((agent) => (
+                      <div 
+                        key={agent.name} 
+                        className={`flex items-center justify-between p-4 border rounded-lg ${
+                          agent.is_current_user ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                        }`}
+                      >
+                        <div className="flex items-center space-x-4">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-white ${
+                            agent.rank === 1 ? 'bg-yellow-500' :
+                            agent.rank === 2 ? 'bg-gray-400' :
+                            agent.rank === 3 ? 'bg-orange-500' :
+                            'bg-gray-300'
+                          }`}>
+                            {agent.rank}
+                          </div>
+                          <div>
+                            <h3 className="font-medium text-gray-900">
+                              {agent.name} {agent.is_current_user && '(You)'}
+                            </h3>
+                            <p className="text-sm text-gray-500">
+                              Deposits: {agent.deposits} | Coins Redeemed: {agent.coins_redeemed} | Sales: ${agent.total_sales}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Shop Tab */}
           {activeTab === 'shop' && (
             <div className="bg-white shadow rounded-lg">
@@ -1355,14 +1460,29 @@ const AgentDashboard = () => {
                       <div key={prize.id} className="border border-gray-200 rounded-lg p-4">
                         <h3 className="font-medium text-gray-900">{prize.name}</h3>
                         <p className="text-sm text-gray-500 mt-1">{prize.description}</p>
-                        <div className="mt-3 flex items-center justify-between">
-                          <span className="text-lg font-bold text-blue-600">{prize.coin_cost} coins</span>
+                        <div className="mt-3 space-y-1">
+                          <div className="text-lg font-bold text-blue-600">{prize.coin_cost} coins</div>
+                          {prize.is_limited && (
+                            <div className="text-sm text-gray-500">
+                              Limited: {prize.quantity_available} left
+                            </div>
+                          )}
+                        </div>
+                        <div className="mt-3">
                           <button
                             onClick={() => redeemPrize(prize.id)}
-                            disabled={dashboardData.agent_info.coins < prize.coin_cost}
-                            className="bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white px-3 py-1 rounded text-sm"
+                            disabled={
+                              dashboardData.agent_info.coins < prize.coin_cost ||
+                              (prize.is_limited && prize.quantity_available <= 0)
+                            }
+                            className="w-full bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-3 py-2 rounded text-sm font-medium"
                           >
-                            Redeem
+                            {dashboardData.agent_info.coins < prize.coin_cost 
+                              ? 'Insufficient Coins' 
+                              : (prize.is_limited && prize.quantity_available <= 0)
+                                ? 'Out of Stock'
+                                : 'Redeem'
+                            }
                           </button>
                         </div>
                       </div>
@@ -1388,10 +1508,31 @@ const AgentDashboard = () => {
                       <div key={reward.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
                         <div>
                           <h3 className="font-medium text-gray-900">{reward.prize_name}</h3>
-                          <p className="text-sm text-gray-500">Status: {reward.status}</p>
+                          <p className="text-sm text-gray-500">
+                            Status: <span className={`font-medium ${
+                              reward.status === 'unused' ? 'text-green-600' :
+                              reward.status === 'pending_use' ? 'text-yellow-600' :
+                              'text-gray-600'
+                            }`}>
+                              {reward.status === 'unused' ? 'Ready to Use' :
+                               reward.status === 'pending_use' ? 'Pending Admin Approval' :
+                               'Used'}
+                            </span>
+                          </p>
                           <p className="text-sm text-gray-500">Redeemed: {new Date(reward.redeemed_at).toLocaleDateString()}</p>
+                          {reward.used_at && (
+                            <p className="text-sm text-gray-500">Used: {new Date(reward.used_at).toLocaleDateString()}</p>
+                          )}
                         </div>
                         <div className="flex items-center space-x-2">
+                          {reward.status === 'unused' && (
+                            <button
+                              onClick={() => requestUseReward(reward.id)}
+                              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
+                            >
+                              Request to Use
+                            </button>
+                          )}
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                             reward.status === 'unused' ? 'bg-green-100 text-green-800' :
                             reward.status === 'pending_use' ? 'bg-yellow-100 text-yellow-800' :
