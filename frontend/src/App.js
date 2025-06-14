@@ -702,8 +702,11 @@ const SuperAdminDashboard = () => {
 const AdminDashboard = () => {
   const [agents, setAgents] = useState([]);
   const [saleRequests, setSaleRequests] = useState([]);
+  const [rewardRequests, setRewardRequests] = useState([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showTargetForm, setShowTargetForm] = useState(false);
   const [newAgent, setNewAgent] = useState({ username: '', password: '', name: '' });
+  const [targetAgent, setTargetAgent] = useState({ id: '', target_monthly: 0 });
   const [activeTab, setActiveTab] = useState('agents');
   const [loading, setLoading] = useState(false);
   const { logout } = useAuth();
@@ -711,6 +714,7 @@ const AdminDashboard = () => {
   useEffect(() => {
     fetchAgents();
     fetchSaleRequests();
+    fetchRewardRequests();
   }, []);
 
   const fetchAgents = async () => {
@@ -728,6 +732,15 @@ const AdminDashboard = () => {
       setSaleRequests(response.data);
     } catch (error) {
       console.error('Error fetching sale requests:', error);
+    }
+  };
+
+  const fetchRewardRequests = async () => {
+    try {
+      const response = await axios.get(`${API}/admin/reward-requests`);
+      setRewardRequests(response.data);
+    } catch (error) {
+      console.error('Error fetching reward requests:', error);
     }
   };
 
@@ -749,6 +762,23 @@ const AdminDashboard = () => {
     }
   };
 
+  const updateAgentTarget = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await axios.put(`${API}/admin/agents/${targetAgent.id}/target`, {
+        target_monthly: targetAgent.target_monthly
+      });
+      setTargetAgent({ id: '', target_monthly: 0 });
+      setShowTargetForm(false);
+      fetchAgents();
+    } catch (error) {
+      alert(error.response?.data?.detail || 'Error updating target');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const approveSaleRequest = async (requestId) => {
     try {
       await axios.put(`${API}/admin/sale-requests/${requestId}/approve`);
@@ -757,6 +787,20 @@ const AdminDashboard = () => {
     } catch (error) {
       alert(error.response?.data?.detail || 'Error approving sale request');
     }
+  };
+
+  const approveRewardRequest = async (rewardId) => {
+    try {
+      await axios.put(`${API}/admin/reward-requests/${rewardId}/approve`);
+      fetchRewardRequests();
+    } catch (error) {
+      alert(error.response?.data?.detail || 'Error approving reward request');
+    }
+  };
+
+  const openTargetForm = (agent) => {
+    setTargetAgent({ id: agent.id, target_monthly: agent.target_monthly || 0 });
+    setShowTargetForm(true);
   };
 
   return (
@@ -805,6 +849,16 @@ const AdminDashboard = () => {
               >
                 Sale Requests ({saleRequests.length})
               </button>
+              <button
+                onClick={() => setActiveTab('rewards')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'rewards'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Reward Requests ({rewardRequests.length})
+              </button>
             </nav>
           </div>
 
@@ -830,10 +884,32 @@ const AdminDashboard = () => {
                   <div className="space-y-4">
                     {agents.map((agent) => (
                       <div key={agent.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                        <div>
+                        <div className="flex-1">
                           <h3 className="font-medium text-gray-900">{agent.name || agent.username}</h3>
                           <p className="text-sm text-gray-500">Username: {agent.username}</p>
-                          <p className="text-sm text-gray-500">Coins: {agent.coins || 0} | Deposits: {agent.deposits || 0}</p>
+                          <div className="text-sm text-gray-500">
+                            <span>Coins: {agent.coins || 0} | </span>
+                            <span>Deposits: {agent.deposits || 0} | </span>
+                            <span>Target: {agent.target_monthly || 0}</span>
+                          </div>
+                          {agent.target_monthly > 0 && (
+                            <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                              <div
+                                className="bg-blue-600 h-2 rounded-full"
+                                style={{
+                                  width: `${Math.min((agent.deposits || 0) / agent.target_monthly * 100, 100)}%`
+                                }}
+                              ></div>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => openTargetForm(agent)}
+                            className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm"
+                          >
+                            Set Target
+                          </button>
                         </div>
                       </div>
                     ))}
@@ -859,7 +935,9 @@ const AdminDashboard = () => {
                       <div key={request.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
                         <div>
                           <h3 className="font-medium text-gray-900">Sale Amount: ${request.sale_amount}</h3>
-                          <p className="text-sm text-gray-500">Agent ID: {request.agent_id}</p>
+                          <p className="text-sm text-gray-500">
+                            Agent: {request.agent_name || request.agent_username || request.agent_id}
+                          </p>
                           <p className="text-sm text-gray-500">Coins: {request.coins_requested} | Deposits: {request.deposits_requested}</p>
                           <p className="text-sm text-gray-500">Requested: {new Date(request.created_at).toLocaleString()}</p>
                         </div>
@@ -868,6 +946,39 @@ const AdminDashboard = () => {
                           className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
                         >
                           Approve
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Reward Requests Tab */}
+          {activeTab === 'rewards' && (
+            <div className="bg-white shadow rounded-lg">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h2 className="text-lg font-medium text-gray-900">Pending Reward Use Requests</h2>
+              </div>
+
+              <div className="p-6">
+                {rewardRequests.length === 0 ? (
+                  <p className="text-gray-500 text-center py-8">No pending reward requests</p>
+                ) : (
+                  <div className="space-y-4">
+                    {rewardRequests.map((reward) => (
+                      <div key={reward.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                        <div>
+                          <h3 className="font-medium text-gray-900">Prize: {reward.prize_name}</h3>
+                          <p className="text-sm text-gray-500">Agent: {reward.agent_name}</p>
+                          <p className="text-sm text-gray-500">Redeemed: {new Date(reward.redeemed_at).toLocaleString()}</p>
+                        </div>
+                        <button
+                          onClick={() => approveRewardRequest(reward.id)}
+                          className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
+                        >
+                          Approve Use
                         </button>
                       </div>
                     ))}
@@ -928,6 +1039,44 @@ const AdminDashboard = () => {
                   className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
                 >
                   {loading ? 'Creating...' : 'Create Agent'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Set Target Modal */}
+      {showTargetForm && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Set Monthly Target</h3>
+            <form onSubmit={updateAgentTarget} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Monthly Target (Deposits)</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={targetAgent.target_monthly}
+                  onChange={(e) => setTargetAgent({...targetAgent, target_monthly: parseFloat(e.target.value)})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+              <div className="flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setShowTargetForm(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50"
+                >
+                  {loading ? 'Updating...' : 'Update Target'}
                 </button>
               </div>
             </form>
