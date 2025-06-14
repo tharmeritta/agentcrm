@@ -333,7 +333,19 @@ async def create_agent(user_data: UserCreate, current_user: dict = Depends(requi
 
 @api_router.get("/admin/sale-requests")
 async def get_pending_sale_requests(current_user: dict = Depends(require_role([UserRole.ADMIN, UserRole.SUPER_ADMIN]))):
-    requests = await db.sale_requests.find({"status": "pending"}).to_list(1000)
+    database = await get_database()
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    
+    requests = await database.sale_requests.find({"status": "pending"}).to_list(1000)
+    
+    # Add agent information to each request
+    for request in requests:
+        agent = await database.users.find_one({"id": request["agent_id"]})
+        if agent:
+            request["agent_name"] = agent.get("name", agent.get("username"))
+            request["agent_username"] = agent.get("username")
+    
     return requests
 
 @api_router.put("/admin/sale-requests/{request_id}/approve")
