@@ -527,7 +527,7 @@ async def get_pending_sale_requests(current_user: dict = Depends(require_role([U
             request["agent_name"] = agent.get("name", agent.get("username"))
             request["agent_username"] = agent.get("username")
     
-    return requests
+    return convert_objectid_to_string(requests)
 
 @api_router.put("/admin/sale-requests/{request_id}/approve")
 async def approve_sale_request(request_id: str, current_user: dict = Depends(require_role([UserRole.ADMIN, UserRole.SUPER_ADMIN]))):
