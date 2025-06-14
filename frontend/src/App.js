@@ -359,6 +359,17 @@ const SuperAdminDashboard = () => {
     }
   };
 
+  const rejectCoinRequest = async (requestId, reason) => {
+    try {
+      await axios.put(`${API}/admin/coin-requests/${requestId}/reject`, {
+        reason: reason || "No reason provided"
+      });
+      fetchCoinRequests();
+    } catch (error) {
+      alert(error.response?.data?.detail || 'Error rejecting coin request');
+    }
+  };
+
   const openEditPrizeForm = (prize) => {
     setEditingPrize({ ...prize });
     setShowEditPrizeForm(true);
