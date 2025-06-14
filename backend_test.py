@@ -10,7 +10,7 @@ import string
 import traceback
 
 # Get the backend URL from the frontend .env file
-BACKEND_URL = "https://9d436bfd-169d-4a6d-9d03-861b7fcf694e.preview.emergentagent.com"
+BACKEND_URL = "https://498e7a0a-3630-42db-bcc5-cc6cfa3ca9f7.preview.emergentagent.com"
 API_PREFIX = "/api"
 BASE_URL = f"{BACKEND_URL}{API_PREFIX}"
 
