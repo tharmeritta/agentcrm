@@ -230,7 +230,7 @@ backend:
 
   - task: "Shop and reward bag"
     implemented: true
-    working: false
+    working: true
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "medium"
@@ -245,6 +245,9 @@ backend:
       - working: false
         agent: "testing"
         comment: "Retested shop and reward bag functionality. The agent now has coins from the approved sale request, but the prize costs more coins than the agent has earned. This is expected behavior and not a bug. The shop functionality is working correctly, but we couldn't complete the full workflow due to insufficient coins."
+      - working: true
+        agent: "testing"
+        comment: "Created a separate test with a low-cost prize (0.5 coins) that the agent can afford after one sale. Successfully tested the complete shop and reward bag workflow: agent redeemed the prize, requested to use it, and admin approved the request. The MongoDB ObjectId serialization issue has been fixed."
 
   - task: "Leaderboard"
     implemented: true
