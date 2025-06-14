@@ -189,6 +189,7 @@ def calculate_coins_and_deposits(sale_amount: str):
 
 # Initialize database with super admin
 async def initialize_super_admin():
+    db = await get_database()
     existing_super_admin = await db.users.find_one({"role": "super_admin"})
     if not existing_super_admin:
         super_admin = User(
