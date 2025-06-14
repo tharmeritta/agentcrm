@@ -269,13 +269,8 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Shop management"
-    - "User management"
-    - "Sales request workflow"
-  stuck_tasks:
-    - "Shop management"
-    - "User management"
-    - "Sales request workflow"
+    - "Shop and reward bag"
+  stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
