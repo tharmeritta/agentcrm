@@ -187,7 +187,13 @@ def calculate_coins_and_deposits(sale_amount: str):
 
 # Initialize database with super admin
 async def initialize_super_admin():
-    existing_super_admin = await db.users.find_one({"role": "super_admin"})
+    # Get database connection first
+    database = await get_database()
+    if not database:
+        print("Failed to initialize database connection")
+        return
+        
+    existing_super_admin = await database.users.find_one({"role": "super_admin"})
     if not existing_super_admin:
         super_admin = User(
             username="tharme.ritta",
@@ -197,7 +203,7 @@ async def initialize_super_admin():
         )
         super_admin_dict = super_admin.dict()
         super_admin_dict["password_hash"] = hash_password("Tharme@789")
-        await db.users.insert_one(super_admin_dict)
+        await database.users.insert_one(super_admin_dict)
         print("Super Admin created successfully")
 
 # Routes
