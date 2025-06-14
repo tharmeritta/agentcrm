@@ -18,14 +18,18 @@ ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
 # MongoDB connection
+import ssl
+import certifi
+
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(
     mongo_url,
-    serverSelectionTimeoutMS=10000,
-    connectTimeoutMS=20000,
-    socketTimeoutMS=20000,
+    serverSelectionTimeoutMS=15000,
+    connectTimeoutMS=30000,
+    socketTimeoutMS=30000,
     maxPoolSize=10,
-    minPoolSize=1
+    ssl_cert_reqs=ssl.CERT_NONE,
+    tlsCAFile=certifi.where()
 )
 db = client[os.environ['DB_NAME']]
 
