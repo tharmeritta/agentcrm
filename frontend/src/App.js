@@ -702,12 +702,25 @@ const SuperAdminDashboard = () => {
                           <p className="text-sm text-gray-500">Coins: {request.coins_requested} | Deposits: {request.deposits_requested}</p>
                           <p className="text-sm text-gray-500">Requested: {new Date(request.created_at).toLocaleString()}</p>
                         </div>
-                        <button
-                          onClick={() => approveCoinRequest(request.id)}
-                          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
-                        >
-                          Approve
-                        </button>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => approveCoinRequest(request.id)}
+                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
+                          >
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => {
+                              const reason = prompt("Please provide a reason for rejection:");
+                              if (reason !== null) {
+                                rejectCoinRequest(request.id, reason);
+                              }
+                            }}
+                            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
+                          >
+                            Reject
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
