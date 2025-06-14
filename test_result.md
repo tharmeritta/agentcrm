@@ -119,6 +119,9 @@ backend:
       - working: true
         agent: "testing"
         comment: "Basic connectivity test passed. Server responded with status code 200."
+      - working: true
+        agent: "testing"
+        comment: "Retested basic connectivity and confirmed it's working. Server responds with status code 200."
 
   - task: "Authentication"
     implemented: true
@@ -134,6 +137,9 @@ backend:
       - working: true
         agent: "testing"
         comment: "Authentication test passed. Successfully authenticated as Super Admin and received JWT token."
+      - working: true
+        agent: "testing"
+        comment: "Retested authentication and confirmed it's working. Successfully logged in as Super Admin and received valid JWT token."
 
   - task: "User info"
     implemented: true
@@ -149,19 +155,115 @@ backend:
       - working: true
         agent: "testing"
         comment: "User info test passed. Successfully retrieved user information using JWT token."
+      - working: true
+        agent: "testing"
+        comment: "Retested user info endpoint and confirmed it's working. Successfully retrieved user information with correct role, username, and ID."
+
+  - task: "Shop management"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Testing shop management functionality for Super Admin."
+      - working: false
+        agent: "testing"
+        comment: "Prize creation works successfully, but listing prizes fails with a 500 Internal Server Error. Creating prizes with limited quantity also works."
+
+  - task: "User management"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Testing user management functionality."
+      - working: false
+        agent: "testing"
+        comment: "Super Admin can create admin users and agent users. Admin can create agent users. All user creation endpoints work correctly. However, listing all users with GET /api/super-admin/all-users fails with a 500 Internal Server Error."
+
+  - task: "Sales request workflow"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Testing sales request workflow."
+      - working: false
+        agent: "testing"
+        comment: "Agent can submit a sale request successfully, but admin cannot view pending requests. GET /api/admin/sale-requests fails with a 500 Internal Server Error."
+
+  - task: "Target system"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Testing target system functionality."
+      - working: true
+        agent: "testing"
+        comment: "Admin can set monthly target for agent successfully. Agent can view their target and achievement percentage in the dashboard. Target system is working correctly."
+
+  - task: "Shop and reward bag"
+    implemented: true
+    working: false
+    file: "/app/backend/server.py"
+    stuck_count: 1
+    priority: "medium"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Testing shop and reward bag functionality."
+      - working: false
+        agent: "testing"
+        comment: "Agent cannot redeem prizes due to insufficient coins. This is expected behavior since we couldn't complete the sales request workflow to earn coins. The shop and reward bag functionality cannot be fully tested until the sales request workflow is fixed."
+
+  - task: "Leaderboard"
+    implemented: true
+    working: true
+    file: "/app/backend/server.py"
+    stuck_count: 0
+    priority: "low"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Testing agent leaderboard functionality."
+      - working: true
+        agent: "testing"
+        comment: "Agent leaderboard works correctly. Agent can view the leaderboard with proper ranking based on deposits. The current agent is correctly identified in the leaderboard."
 
 metadata:
   created_by: "testing_agent"
   version: "1.0"
-  test_sequence: 1
+  test_sequence: 2
   run_ui: false
 
 test_plan:
   current_focus:
-    - "Basic connectivity"
-    - "Authentication"
-    - "User info"
-  stuck_tasks: []
+    - "Shop management"
+    - "User management"
+    - "Sales request workflow"
+  stuck_tasks:
+    - "Shop management"
+    - "User management"
+    - "Sales request workflow"
   test_all: false
   test_priority: "high_first"
 
@@ -170,3 +272,5 @@ agent_communication:
     message: "Created initial test_result.md file based on user's review request. Will now run tests on the backend API endpoints."
   - agent: "testing"
     message: "Fixed MongoDB connection issues in the backend server. The issue was that the database connection wasn't being properly initialized before use. Modified the get_database() function to properly handle fallback to local MongoDB and updated all database-using functions to call get_database() first. All tests are now passing successfully."
+  - agent: "testing"
+    message: "Completed comprehensive testing of the CRM system. Found several issues with the backend API: 1) Listing prizes fails with 500 error, 2) Listing all users fails with 500 error, 3) Viewing pending sale requests fails with 500 error. These issues appear to be related to database queries. The target system and leaderboard functionality are working correctly. The shop and reward bag functionality cannot be fully tested until the sales request workflow is fixed to allow agents to earn coins."
