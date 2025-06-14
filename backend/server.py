@@ -291,11 +291,44 @@ async def get_all_users(current_user: dict = Depends(require_role([UserRole.SUPE
     # Get all users except super_admin
     users = await database.users.find({"role": {"$in": ["admin", "agent"]}}).to_list(1000)
     
-    # Remove password_hash from response and convert ObjectId
+    # Include credentials for super admin view
     for user in users:
+        # Keep password_hash for super admin but don't send it in response
+        # We'll return a placeholder indicating password exists
+        user["has_password"] = bool(user.get("password_hash"))
         user.pop("password_hash", None)
     
     return convert_objectid_to_string(users)
+
+@api_router.get("/super-admin/users/admins")
+async def get_admin_users_with_credentials(current_user: dict = Depends(require_role([UserRole.SUPER_ADMIN]))):
+    database = await get_database()
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    
+    admins = await database.users.find({"role": "admin"}).to_list(1000)
+    
+    # Format for credentials view
+    for admin in admins:
+        admin["has_password"] = bool(admin.get("password_hash"))
+        admin.pop("password_hash", None)
+    
+    return convert_objectid_to_string(admins)
+
+@api_router.get("/super-admin/users/agents")
+async def get_agent_users_with_credentials(current_user: dict = Depends(require_role([UserRole.SUPER_ADMIN]))):
+    database = await get_database()
+    if database is None:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    
+    agents = await database.users.find({"role": "agent"}).to_list(1000)
+    
+    # Format for credentials view
+    for agent in agents:
+        agent["has_password"] = bool(agent.get("password_hash"))
+        agent.pop("password_hash", None)
+    
+    return convert_objectid_to_string(agents)
 
 @api_router.post("/super-admin/agents")
 async def create_agent_by_super_admin(user_data: UserCreate, current_user: dict = Depends(require_role([UserRole.SUPER_ADMIN]))):
