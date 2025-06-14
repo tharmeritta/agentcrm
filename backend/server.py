@@ -327,7 +327,7 @@ async def get_all_prizes(current_user: dict = Depends(require_role([UserRole.SUP
         raise HTTPException(status_code=500, detail="Database connection failed")
     
     prizes = await database.prizes.find({}).to_list(1000)
-    return prizes
+    return convert_objectid_to_string(prizes)
 
 @api_router.post("/super-admin/prizes")
 async def create_prize(prize_data: dict, current_user: dict = Depends(require_role([UserRole.SUPER_ADMIN]))):
