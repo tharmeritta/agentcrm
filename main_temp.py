@@ -48,8 +48,7 @@ async def get_database():
                 maxPoolSize=10,
                 tlsAllowInvalidCertificates=True
             )
-            db = client[os.environ.get('DB_NAME', 'agent_crm')]
-            # Test connection
+            db = client[db_name]
             await client.admin.command('ping')
             print("MongoDB Atlas connected successfully!")
         except Exception as e:
