@@ -1,0 +1,54 @@
+# 📦 DEPLOYMENT PACKAGE INSTRUCTIONS
+
+## 🚀 What's in this package:
+
+```
+sales-crm-deployment/
+├── main.py                    # ← FastAPI backend application
+├── requirements.txt           # ← Python dependencies (IMPORTANT!)
+├── README.md                  # ← Project documentation  
+├── RENDER_DEPLOYMENT.md       # ← Step-by-step deployment guide
+└── frontend/                  # ← React frontend application
+    ├── src/
+    ├── public/
+    ├── package.json
+    └── other React files
+```
+
+## 📋 UPLOAD TO GITHUB:
+
+### Step 1: Extract Files
+1. Download and extract `sales-crm-deployment.tar.gz`
+2. You'll see all the files above
+
+### Step 2: Upload to GitHub  
+1. **Go to**: https://github.com/tharmekritta/agenterm
+2. **Click**: "Add file" → "Upload files"
+3. **Drag and drop** ALL files from the extracted folder
+4. **Important**: Make sure `requirements.txt` and `main.py` are in the ROOT directory
+5. **Commit**: Add commit message and click "Commit changes"
+
+### Step 3: Redeploy on Render
+1. **Go back to**: https://dashboard.render.com  
+2. **Click**: "Manual Deploy" → "Deploy latest commit"
+3. **Or create new service** and it should work now
+
+## ✅ Key Files Render Needs:
+- `main.py` ← Your FastAPI app
+- `requirements.txt` ← Python packages
+- `frontend/` ← React app (for frontend deployment)
+
+## 🎯 After Upload:
+Your GitHub repo should show:
+- main.py ✅
+- requirements.txt ✅  
+- frontend/ ✅
+- README.md ✅
+
+## 🚀 Then Render Deployment Will Work!
+
+Follow the detailed guide in `RENDER_DEPLOYMENT.md` for complete instructions.
+
+---
+**File created by:** Sales CRM Deployment Assistant
+**Ready for:** Render.com deployment
