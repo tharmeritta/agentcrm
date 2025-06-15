@@ -71,8 +71,21 @@ JWT_SECRET = os.environ.get('JWT_SECRET', 'your-fallback-secret')
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_HOURS = 24
 
-# Create the main app without a prefix
-app = FastAPI()
+# Create the main app
+app = FastAPI(
+    title="Sales CRM System API",
+    description="Comprehensive Sales CRM with role-based access",
+    version="1.0.0"
+)
+
+# CORS middleware for production
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Will be restricted after deployment
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
