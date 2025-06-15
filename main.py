@@ -39,24 +39,28 @@ async def get_database():
     global client, db
     if client is None:
         try:
-            # Try MongoDB Atlas connection first
+            # Try MongoDB Atlas connection with SSL fix
             client = AsyncIOMotorClient(
                 mongo_url,
-                serverSelectionTimeoutMS=5000,
-                connectTimeoutMS=10000,
-                socketTimeoutMS=10000,
+                serverSelectionTimeoutMS=30000,
+                connectTimeoutMS=20000,
+                socketTimeoutMS=20000,
                 maxPoolSize=10,
-                tlsAllowInvalidCertificates=True
+                tls=True,
+                tlsAllowInvalidCertificates=False,
+                retryWrites=True
             )
             db = client[db_name]
+            # Test connection
             await client.admin.command('ping')
-            print("MongoDB Atlas connected successfully!")
+            print(f"MongoDB Atlas connected successfully to {db_name}!")
         except Exception as e:
             print(f"MongoDB Atlas connection failed: {e}")
             try:
                 # Fall back to local MongoDB
                 client = AsyncIOMotorClient("mongodb://localhost:27017")
                 db = client[db_name]
+                # Test local connection
                 await client.admin.command('ping')
                 print("Connected to local MongoDB instead")
             except Exception as local_e:
