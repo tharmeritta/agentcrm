@@ -30,7 +30,8 @@ else:
 import ssl
 import certifi
 
-mongo_url = os.environ['MONGO_URL']
+mongo_url = os.environ.get('MONGO_URL')
+db_name = os.environ.get('DB_NAME', 'sales_crm_production')
 client = None
 db = None
 
