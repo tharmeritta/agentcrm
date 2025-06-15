@@ -1,0 +1,19 @@
+version: "3"
+services:
+  backend:
+    name: sales-crm-backend
+    command: uvicorn main:app --host 0.0.0.0 --port $PORT
+    environment:
+      - MONGO_URL=$MONGO_URL
+      - JWT_SECRET_KEY=$JWT_SECRET_KEY
+      - DB_NAME=$DB_NAME
+    dependencies:
+      - python:3.11
+  
+  frontend:
+    name: sales-crm-frontend
+    command: npm run build && npx serve -s build -p $PORT
+    environment:
+      - REACT_APP_BACKEND_URL=$BACKEND_URL
+    dependencies:
+      - node:18
