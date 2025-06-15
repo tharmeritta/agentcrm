@@ -18,34 +18,10 @@ A comprehensive Sales CRM system with role-based access control, coin rewards, a
 - **Database**: MongoDB Atlas
 - **Authentication**: JWT tokens
 
-## Live Demo
-
-- **Frontend**: https://sales-crm-frontend.onrender.com
-- **Backend API**: https://sales-crm-backend.onrender.com
-
 ## Super Admin Login
 
 - **Username**: tharme.ritta
 - **Password**: Tharme@789
-
-## Deployment
-
-See `RENDER_DEPLOYMENT.md` for complete deployment instructions.
-
-## Local Development
-
-### Backend
-```bash
-pip install -r requirements.txt
-uvicorn main:app --reload
-```
-
-### Frontend
-```bash
-cd frontend
-npm install
-npm start
-```
 
 ## System Overview
 
