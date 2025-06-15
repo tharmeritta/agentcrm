@@ -14,8 +14,17 @@ import jwt
 import bcrypt
 from enum import Enum
 
-ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env')
+# Load environment variables from .env.production for deployment
+env_path = Path(__file__).parent / '.env.production'
+if env_path.exists():
+    load_dotenv(env_path)
+else:
+    # Fallback to local .env or backend/.env
+    backend_env = Path(__file__).parent / 'backend' / '.env'
+    if backend_env.exists():
+        load_dotenv(backend_env)
+    else:
+        load_dotenv()
 
 # MongoDB connection
 import ssl
