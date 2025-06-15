@@ -56,8 +56,7 @@ async def get_database():
             try:
                 # Fall back to local MongoDB
                 client = AsyncIOMotorClient("mongodb://localhost:27017")
-                db = client[os.environ.get('DB_NAME', 'agent_crm')]
-                # Test local connection
+                db = client[db_name]
                 await client.admin.command('ping')
                 print("Connected to local MongoDB instead")
             except Exception as local_e:
